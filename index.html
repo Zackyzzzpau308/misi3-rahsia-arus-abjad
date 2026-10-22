@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISI 3: RAHSIA ARUS ABJAD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;800;900&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            background-color: #0d0702;
+        }
+
+        .font-game {
+            font-family: 'Fredoka', cursive;
+        }
+
+        .bg-parchment {
+            background: #fdf6e2;
+            border: 3px solid #d4b886;
+        }
+
+        .tile-btn {
+            transition: all 0.15s ease;
+            box-shadow: 0 5px 0 #b26a00;
+        }
+
+        .tile-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #b26a00;
+        }
+
+        .slot-box {
+            min-width: 44px;
+            height: 54px;
+            border-bottom: 4px solid #8B4513;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .timer-warning {
+            animation: pulse-red 1s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            0% { color: #f87171; transform: scale(1); }
+            100% { color: #ef4444; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+
+    <!-- CONTAINER UTAMA 16:9 LANDSCAPE -->
+    <div class="relative w-full max-w-5xl aspect-video rounded-3xl shadow-2xl overflow-hidden border-4 border-[#8B4513] flex flex-col justify-between bg-cover bg-center" id="game-container" style="background-image: url('Magical Waterfall Bottle Mystery_2.png');">
+        
+        <!-- OVERLAY UTAMA -->
+        <div class="absolute inset-0 bg-black/20 pointer-events-none z-0"></div>
+
+        <!-- 0. VIDEO INTRO (PENGENALAN) -->
+        <div id="screen-video" class="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center">
+            <video id="intro-video" class="w-full h-full object-cover" src="video-intro.mp4" playsinline></video>
+            <button onclick="skipVideo()" class="absolute bottom-6 right-6 px-6 py-2.5 bg-amber-500/90 hover:bg-amber-400 text-amber-950 font-black text-sm sm:text-base rounded-2xl shadow-xl border-2 border-amber-200 transition font-game flex items-center gap-2">
+                LANGKAU / SKIP INTRO <i class="fa-solid fa-forward"></i>
+            </button>
+        </div>
+
+        <!-- 1. SKRIN MUKA DEPAN (START SCREEN INTERAKTIF) -->
+        <div id="screen-start" class="hidden relative z-10 flex flex-col items-center justify-between h-full p-6 text-center">
+            <div></div>
+            <!-- TAJUK DENGAN KEDUDUKAN DI TENGAH-TENGAH -->
+            <div class="bg-black/55 backdrop-blur-md p-6 sm:p-8 rounded-3xl border-4 border-amber-400/60 max-w-xl w-full shadow-2xl animate-pop my-auto">
+                <h2 class="text-2xl sm:text-4xl font-black text-amber-400 tracking-widest font-game drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] uppercase mb-1">
+                    MISI 3
+                </h2>
+                <h1 class="text-3xl sm:text-5xl font-black text-white font-game drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-wide">
+                    RAHSIA ARUS ABJAD
+                </h1>
+                <p class="text-amber-200 text-xs sm:text-sm font-bold mt-3 drop-shadow">
+                    Susun huruf bercampur menjadi perkataan yang tepat dan semak maknanya menerusi Kamus Digital!
+                </p>
+            </div>
+
+            <button onclick="startGame()" class="mb-4 px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-2xl sm:text-3xl rounded-2xl shadow-2xl border-4 border-amber-200 transform hover:scale-105 active:scale-95 transition font-game flex items-center gap-3">
+                <i class="fa-solid fa-play"></i> MULA MISI
+            </button>
+        </div>
+
+        <!-- 2. SKRIN SOALAN (PERMAINAN) -->
+        <div id="screen-quiz" class="hidden relative z-10 flex-col justify-between h-full p-3 sm:p-5">
+            
+            <!-- HEADER: PROGRES, SIMBOL HOME DI TENGAH, MARAKAH -->
+            <div class="flex items-center justify-between bg-black/60 backdrop-blur-md p-2.5 rounded-2xl border border-amber-500/40 relative">
+                <!-- SEBELAH KIRI: TAG SOALAN & PEMASA -->
+                <div class="flex items-center gap-2">
+                    <span id="soalan-tag" class="bg-amber-500 text-amber-950 font-black px-2.5 py-1 rounded-xl text-xs sm:text-sm font-game">
+                        SOALAN 1/5
+                    </span>
+                    <div id="timer-box" class="flex items-center gap-1.5 bg-amber-950/80 px-2.5 py-1 rounded-xl border border-amber-400/50 text-amber-300 font-black font-game text-xs sm:text-sm">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <span id="timer-text">02:00</span>
+                    </div>
+                </div>
+
+                <!-- BUTTON SIMBOL HOME DI TENGAH-TENGAH -->
+                <button onclick="goHome()" class="absolute left-1/2 -translate-x-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-b from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-amber-950 rounded-2xl border-2 border-amber-200 flex items-center justify-center shadow-lg transform active:scale-90 transition" title="Ke Muka Depan">
+                    <i class="fa-solid fa-house text-lg sm:text-xl"></i>
+                </button>
+
+                <!-- SEBELAH KANAN: MARKAH -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-green-600 text-white font-black px-3 py-1 rounded-xl text-xs sm:text-sm font-game border border-green-300">
+                        MARKAH: <span id="current-score">0</span>/10
+                    </div>
+                </div>
+            </div>
+
+            <!-- KANDUNGAN SOALAN -->
+            <div class="my-auto py-2 flex flex-col items-center">
+                <!-- KOTAK AYAT -->
+                <div class="bg-parchment p-4 sm:p-5 rounded-2xl shadow-2xl max-w-2xl w-full text-center mb-3 border-2 border-amber-800">
+                    <h2 class="text-[10px] sm:text-xs font-black text-amber-800 tracking-wider uppercase mb-1 font-game">Isi tempat kosong dengan jawapan yang betul</h2>
+                    <p id="sentence-text" class="text-base sm:text-xl font-bold text-gray-900 leading-relaxed font-game">
+                        <!-- Teks ayat -->
+                    </p>
+                </div>
+
+                <!-- KOTAK PERKATAAN TERBENTUK (SLOTS) -->
+                <div class="w-full max-w-xl bg-black/50 backdrop-blur-md p-3 rounded-2xl border border-amber-300/30 text-center">
+                    <p class="text-[10px] font-bold text-amber-200 uppercase tracking-widest mb-1 font-game">(Klik huruf untuk batal)</p>
+                    
+                    <div id="answer-slots" class="flex flex-wrap items-center justify-center gap-2 min-h-[56px]">
+                        <!-- Petak jawapan -->
+                    </div>
+                </div>
+
+                <!-- KETULAN HURUF BERACAK -->
+                <div class="w-full max-w-xl mt-3">
+                    <div id="scrambled-tiles" class="flex flex-wrap items-center justify-center gap-2">
+                        <!-- Ubin huruf beracak -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER: BUTANG KAWALAN -->
+            <div class="flex items-center justify-between gap-4">
+                <button onclick="resetAnswer()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow border border-red-300 active:scale-95 transition flex items-center gap-1.5 font-game">
+                    <i class="fa-solid fa-rotate-left"></i> Padam jawapan
+                </button>
+                <button onclick="checkAnswer()" class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white font-black text-sm sm:text-base rounded-xl shadow-lg border-2 border-green-300 active:scale-95 transition flex items-center gap-2 font-game">
+                    SEMAK JAWAPAN <i class="fa-solid fa-circle-check"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. SKRIN JAWAPAN SALAH -->
+        <div id="screen-wrong" class="hidden relative z-10 flex-col items-center justify-end h-full p-6 bg-cover bg-center" style="background-image: url('Detective’s Wrong Answer Screen.png');">
+            <div class="mb-6 text-center">
+                <button onclick="retryQuestion()" class="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-xl sm:text-2xl rounded-2xl shadow-2xl border-4 border-amber-200 transform hover:scale-105 active:scale-95 transition font-game flex items-center gap-3">
+                    <i class="fa-solid fa-rotate-left"></i> CUBA LAGI
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. SKRIN JAWAPAN BETUL -->
+        <div id="screen-correct" class="hidden relative z-10 flex-col items-center justify-end h-full p-6 bg-cover bg-center" style="background-image: url('Misi Detektif_ Jawapan Betul!.png');">
+            <div class="mb-6 text-center">
+                <button onclick="openDictionaryModal()" class="px-8 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-lg sm:text-xl rounded-2xl shadow-2xl border-4 border-green-200 transform hover:scale-105 active:scale-95 transition font-game flex items-center gap-3">
+                    SEMAK MAKNA PERKATAAN <i class="fa-solid fa-book-open"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. MODAL KAMUS DIGITAL -->
+        <div id="modal-dictionary" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div class="bg-parchment rounded-3xl border-4 border-amber-800 p-5 sm:p-6 max-w-lg w-full shadow-2xl animate-pop text-center relative">
+                <div class="w-14 h-14 bg-amber-700 text-amber-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2 shadow-inner">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <h3 class="text-xl font-black text-amber-900 font-game mb-0.5">Semak Makna Perkataan</h3>
+                <p class="text-[10px] text-amber-800 font-bold uppercase tracking-widest mb-3">Kamus Elektronik Digital</p>
+                
+                <div class="bg-white/80 p-4 rounded-2xl border border-amber-300/80 mb-4 text-left shadow-sm">
+                    <div class="flex items-center justify-between mb-1.5 border-b border-amber-200 pb-1.5">
+                        <span id="dict-word" class="text-xl font-black text-amber-950 font-game"></span>
+                    </div>
+                    <p class="text-[10px] font-bold text-amber-800 uppercase mb-0.5 font-game">Maksud:</p>
+                    <p id="dict-definition" class="text-gray-800 font-bold text-sm sm:text-base leading-relaxed"></p>
+                </div>
+
+                <button onclick="nextQuestion()" class="w-full py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black text-lg rounded-xl shadow-lg border-2 border-amber-300 font-game active:scale-95 transition">
+                    TERUSKAN MISI <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 6. SKRIN TAMAT (REWARD, SIJIL & PETUNJUK MISI 4 BAHARU) -->
+        <div id="screen-end" class="hidden relative z-10 flex-col items-center justify-center h-full p-4 text-center bg-black/75 backdrop-blur-md overflow-y-auto">
+            <div class="bg-parchment p-5 sm:p-6 rounded-3xl border-4 border-amber-700 max-w-md w-full shadow-2xl animate-pop my-auto">
+                <div class="text-4xl text-amber-500 mb-1 drop-shadow">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-2xl font-black text-amber-950 font-game mb-0.5">TAHNIAH!</h2>
+                <p class="text-xs font-bold text-amber-800 mb-2">MISI 3: RAHSIA ARUS ABJAD SELESAI!</p>
+
+                <!-- PAPARAN BINTANG TERKUMPUL (5 BINTANG) -->
+                <div class="flex items-center justify-center gap-1 text-3xl text-amber-400 mb-2 drop-shadow">
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                
+                <!-- KOTAK MARKAH (10 MARKAH) -->
+                <div class="bg-amber-100/90 p-2.5 rounded-xl border border-amber-300 mb-3">
+                    <p class="text-[10px] uppercase font-bold text-amber-900 mb-0.5">Markah Terkumpul</p>
+                    <p class="text-2xl font-black text-amber-800 font-game">10 / 10 MARKAH</p>
+                    <p class="text-[10px] font-bold text-green-700 mt-0.5"><i class="fa-solid fa-circle-check"></i> 5 Soalan Diselesaikan (2 Markah / Soalan)</p>
+                </div>
+
+                <!-- PETUNJUK MISI 4 BAHARU -->
+                <div class="bg-amber-950 text-amber-100 p-3.5 rounded-2xl border-2 border-amber-500 text-center mb-4 shadow-inner">
+                    <!-- POP UP BUTTON KUNING -->
+                    <button class="mb-2 px-4 py-1.5 bg-amber-400 text-amber-950 font-black text-xs sm:text-sm rounded-full shadow-md font-game tracking-wide border border-amber-200">
+                        Misi 4 menanti anda!
+                    </button>
+                    <!-- AYAT PETUNJUK (ITALIC & BOLD) -->
+                    <p class="text-xs sm:text-sm font-bold italic text-amber-200 leading-relaxed">
+                        "Cari peranti berlayar bercahaya, tempat maklumat diteroka!"
+                    </p>
+                </div>
+
+                <button onclick="restartGame()" class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-base rounded-xl shadow-lg border-2 border-amber-200 font-game active:scale-95 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> MAIN SEMULA
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DATA SOALAN
+        const questionsData = [
+            {
+                id: 1,
+                sentence: "Ibu menerima sejambak _____ daripada ayah sempena hari lahirnya.",
+                answer: "BUNGA",
+                scrambled: ["G", "A", "B", "U", "N"],
+                definition: "Bahagian tumbuhan yang biasanya berwarna-warni dan menarik."
+            },
+            {
+                id: 2,
+                sentence: "Kakak memakai _____ ketika membantu ibu memasak di dapur.",
+                answer: "APRON",
+                scrambled: ["N", "P", "O", "R", "A"],
+                definition: "Sejenis kain yang biasanya dipakai oleh tukang masak untuk menutupi bahagian depan pakaian daripada menjadi kotor."
+            },
+            {
+                id: 3,
+                sentence: "Datuk berehat di _____ rumah sambil berbual dengan cucu-cucunya.",
+                answer: "SERAMBI",
+                scrambled: ["R", "E", "S", "A", "M", "B", "I"],
+                definition: "Ruang berbumbung di bahagian hadapan atau sisi rumah."
+            },
+            {
+                id: 4,
+                sentence: "Kami sekeluarga membawa _____ berisi makanan ketika berkelah di taman.",
+                answer: "BAKUL",
+                scrambled: ["K", "A", "U", "L", "B"],
+                definition: "Bekas untuk mengisi atau membawa barang."
+            },
+            {
+                id: 5,
+                sentence: "Ayah menyimpan gambar keluarga di dalam sebuah _____.",
+                answer: "ALBUM",
+                scrambled: ["M", "U", "L", "A", "B"],
+                definition: "Buku atau tempat menyimpan koleksi gambar."
+            }
+        ];
+
+        // RAKAMAN AUDIO JAWAPAN BETUL & SALAH
+        const audioWrongSrc = "Maaf, jawapan anda salah, sila cuba sekali lagi..m4a";
+        const audioCorrectSrc = "Syabas, anda berjaya. Teruskan menjawab soalan seterusnya..m4a";
+
+        let currentQuestionIndex = 0;
+        let selectedLetters = [];
+        let score = 0;
+        let timerInterval = null;
+        let timeLeft = 120; // 2 Minit
+
+        // AUDIO CONTEXT
+        let audioCtx = null;
+        let tickInterval = null;
+
+        // ELEMEN DOM
+        const introVideo = document.getElementById('intro-video');
+        const screenVideo = document.getElementById('screen-video');
+        const screenStart = document.getElementById('screen-start');
+        const screenQuiz = document.getElementById('screen-quiz');
+        const screenWrong = document.getElementById('screen-wrong');
+        const screenCorrect = document.getElementById('screen-correct');
+        const screenEnd = document.getElementById('screen-end');
+        const modalDictionary = document.getElementById('modal-dictionary');
+
+        const sentenceText = document.getElementById('sentence-text');
+        const answerSlots = document.getElementById('answer-slots');
+        const scrambledTiles = document.getElementById('scrambled-tiles');
+        const soalanTag = document.getElementById('soalan-tag');
+        const timerText = document.getElementById('timer-text');
+        const timerBox = document.getElementById('timer-box');
+        const currentScoreText = document.getElementById('current-score');
+
+        const dictWord = document.getElementById('dict-word');
+        const dictDefinition = document.getElementById('dict-definition');
+
+        // MAIN VIDEO INTRO APABILA LAMAN DIBUKA
+        window.addEventListener('DOMContentLoaded', () => {
+            introVideo.play().catch(e => {
+                console.log("Autoplay video disekat browser:", e);
+            });
+            introVideo.onended = () => {
+                skipVideo();
+            };
+        });
+
+        function skipVideo() {
+            introVideo.pause();
+            screenVideo.classList.add('hidden');
+            screenStart.classList.remove('hidden');
+            screenStart.classList.add('flex');
+        }
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTickSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playFeedbackAudio(src) {
+            const audio = new Audio(src);
+            audio.play().catch(e => console.log("Audio feedback failed:", e));
+        }
+
+        function startGame() {
+            initAudioContext();
+            currentQuestionIndex = 0;
+            score = 0;
+            currentScoreText.textContent = score;
+
+            screenStart.classList.add('hidden');
+            screenEnd.classList.add('hidden');
+            screenQuiz.classList.remove('hidden');
+            screenQuiz.classList.add('flex');
+            
+            loadQuestion();
+        }
+
+        function goHome() {
+            clearInterval(timerInterval);
+            clearInterval(tickInterval);
+
+            // Sembunyikan semua screen permainan & tunjukkan Start Screen
+            screenQuiz.classList.add('hidden');
+            screenQuiz.classList.remove('flex');
+            screenWrong.classList.add('hidden');
+            screenWrong.classList.remove('flex');
+            screenCorrect.classList.add('hidden');
+            screenCorrect.classList.remove('flex');
+            modalDictionary.classList.add('hidden');
+            modalDictionary.classList.remove('flex');
+
+            screenStart.classList.remove('hidden');
+            screenStart.classList.add('flex');
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            clearInterval(tickInterval);
+            timeLeft = 120; // 2 Minit
+            timerBox.classList.remove('timer-warning');
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft === 30) {
+                    timerBox.classList.add('timer-warning');
+                    tickInterval = setInterval(playTickSound, 1000);
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    clearInterval(tickInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function handleTimeOut() {
+            screenQuiz.classList.add('hidden');
+            screenQuiz.classList.remove('flex');
+            screenWrong.classList.remove('hidden');
+            screenWrong.classList.add('flex');
+            playFeedbackAudio(audioWrongSrc);
+        }
+
+        function loadQuestion() {
+            const q = questionsData[currentQuestionIndex];
+            selectedLetters = [];
+            
+            soalanTag.textContent = `SOALAN ${q.id}/5`;
+            
+            const parts = q.sentence.split('_____');
+            sentenceText.innerHTML = `${parts[0]} <span class="border-b-4 border-amber-800 font-black text-amber-900 px-3 py-0.5 bg-amber-200/60 rounded">_____</span> ${parts[1] || ''}`;
+
+            renderSlotsAndTiles();
+            startTimer();
+        }
+
+        function renderSlotsAndTiles() {
+            const q = questionsData[currentQuestionIndex];
+
+            // Render Petak Jawapan
+            answerSlots.innerHTML = '';
+            if (selectedLetters.length === 0) {
+                answerSlots.innerHTML = `<span class="text-amber-200/70 font-bold italic text-xs sm:text-sm">Klik abjad di bawah untuk menyusun</span>`;
+            } else {
+                selectedLetters.forEach((letterObj, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'slot-box w-10 sm:w-12 bg-amber-100 text-amber-950 font-black text-xl sm:text-2xl rounded-xl shadow border-2 border-amber-700 flex items-center justify-center font-game animate-pop';
+                    btn.textContent = letterObj.letter;
+                    btn.onclick = () => removeLetter(index);
+                    answerSlots.appendChild(btn);
+                });
+            }
+
+            // Render Ubin Abjad Beracak
+            scrambledTiles.innerHTML = '';
+            q.scrambled.forEach((letter, index) => {
+                const isUsed = selectedLetters.some(item => item.tileIndex === index);
+                const btn = document.createElement('button');
+                
+                if (isUsed) {
+                    btn.className = 'w-10 sm:w-12 h-12 sm:h-14 bg-gray-600/40 text-gray-400 font-bold text-lg sm:text-xl rounded-xl border-2 border-gray-600/50 cursor-not-allowed opacity-40 font-game';
+                    btn.disabled = true;
+                    btn.textContent = letter;
+                } else {
+                    btn.className = 'tile-btn w-10 sm:w-12 h-12 sm:h-14 bg-gradient-to-b from-amber-300 to-amber-500 hover:from-amber-200 hover:to-amber-400 text-amber-950 font-black text-xl sm:text-2xl rounded-xl border-2 border-amber-100 flex items-center justify-center font-game';
+                    btn.textContent = letter;
+                    btn.onclick = () => selectLetter(letter, index);
+                }
+                scrambledTiles.appendChild(btn);
+            });
+        }
+
+        function selectLetter(letter, tileIndex) {
+            selectedLetters.push({ letter, tileIndex });
+            renderSlotsAndTiles();
+        }
+
+        function removeLetter(slotIndex) {
+            selectedLetters.splice(slotIndex, 1);
+            renderSlotsAndTiles();
+        }
+
+        function resetAnswer() {
+            selectedLetters = [];
+            renderSlotsAndTiles();
+        }
+
+        function checkAnswer() {
+            clearInterval(timerInterval);
+            clearInterval(tickInterval);
+
+            const q = questionsData[currentQuestionIndex];
+            const userWord = selectedLetters.map(item => item.letter).join('');
+
+            screenQuiz.classList.add('hidden');
+            screenQuiz.classList.remove('flex');
+
+            if (userWord === q.answer) {
+                // Jawapan Betul (+2 Markah)
+                score += 2;
+                currentScoreText.textContent = score;
+                screenCorrect.classList.remove('hidden');
+                screenCorrect.classList.add('flex');
+                playFeedbackAudio(audioCorrectSrc);
+            } else {
+                // Jawapan Salah
+                screenWrong.classList.remove('hidden');
+                screenWrong.classList.add('flex');
+                playFeedbackAudio(audioWrongSrc);
+            }
+        }
+
+        function retryQuestion() {
+            screenWrong.classList.add('hidden');
+            screenWrong.classList.remove('flex');
+            screenQuiz.classList.remove('hidden');
+            screenQuiz.classList.add('flex');
+            resetAnswer();
+            startTimer();
+        }
+
+        function openDictionaryModal() {
+            const q = questionsData[currentQuestionIndex];
+            screenCorrect.classList.add('hidden');
+            screenCorrect.classList.remove('flex');
+
+            dictWord.textContent = q.answer;
+            dictDefinition.textContent = q.definition;
+
+            modalDictionary.classList.remove('hidden');
+            modalDictionary.classList.add('flex');
+        }
+
+        function nextQuestion() {
+            modalDictionary.classList.add('hidden');
+            modalDictionary.classList.remove('flex');
+
+            if (currentQuestionIndex < questionsData.length - 1) {
+                currentQuestionIndex++;
+                screenQuiz.classList.remove('hidden');
+                screenQuiz.classList.add('flex');
+                loadQuestion();
+            } else {
+                screenEnd.classList.remove('hidden');
+                screenEnd.classList.add('flex');
+            }
+        }
+
+        function restartGame() {
+            startGame();
+        }
+    </script>
+</body>
+</html>
